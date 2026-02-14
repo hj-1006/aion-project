@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 통신 확인</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .monitor-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+    @media (max-width: 980px) { .monitor-layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    .device-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 520px; overflow-y: auto; }
+    .device-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--bg-input);
+    }
+    .device-item.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+    .device-item .name { font-weight: 600; }
+    .device-item .meta { font-size: 0.8rem; color: var(--text-muted); }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #9ca3af;
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+    }
+    .status-ok { background: #16a34a; animation: pulse 2s infinite; }
+    .status-warn { background: #f59e0b; animation: pulse 2s infinite; }
+    .status-bad { background: #dc2626; animation: pulse 2s infinite; }
+    .status-timeout { background: #9ca3af; }
+    .status-dot.status-gradient { transition: background 0.6s ease; animation: none; }
+    .topology-node.status-gradient { transition: fill 0.6s ease; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(22,163,74,0.35); }
+      70% { box-shadow: 0 0 0 10px rgba(22,163,74,0); }
+      100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+    }
+    .topology-wrap { position: relative; height: 520px; background: #0b0f14; border-radius: 12px; overflow: hidden; }
+    .topology-wrap svg { width: 100%; height: 100%; display: block; }
+    .topology-node { fill: #0f172a; stroke: #cbd5f5; stroke-width: 1.2; }
+    .topology-node.ok { fill: #16a34a; }
+    .topology-node.warn { fill: #f59e0b; }
+    .topology-node.bad { fill: #dc2626; }
+    .topology-node.timeout { fill: #6b7280; }
+    .topology-node.active { stroke: #22c55e; stroke-width: 2.6; filter: drop-shadow(0 0 6px rgba(34,197,94,0.5)); }
+    .topology-label { fill: #e5e7eb; font-size: 11px; }
+    .topology-link { stroke: rgba(226,232,240,0.35); stroke-width: 1.2; }
+    .path-link { stroke: #38bdf8; stroke-width: 2; fill: none; stroke-dasharray: 4 6; }
+    .path-link-cutoff { stroke: #f59e0b; }
+    .path-anim { fill: #38bdf8; }
+    .trace-cutoff-dot { fill: none; stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 4 3; }
+    .trace-cutoff-label { fill: #f59e0b; font-size: 11px; font-weight: 600; }
+    .hop-node circle { fill: #1e293b; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 3 2; }
+    .hop-node .hop-label { fill: #94a3b8; font-size: 10px; }
+    .topology-ms { fill: #64748b; font-size: 10px; }
+    .trace-start-node circle { fill: #0ea5e9; stroke: #38bdf8; stroke-width: 2; }
+    .trace-start-node text { fill: #38bdf8; font-size: 11px; font-weight: 600; }
+    .topology-node.trace-hit { stroke: #38bdf8; stroke-width: 2.2; filter: drop-shadow(0 0 6px rgba(56,189,248,0.5)); }
+    .legend { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); }
+    .legend .item { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .monitor-toolbar .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .monitor-toolbar .btn.active:hover { background: var(--accent-hover); }
+    .trace-panel { margin-top: 1rem; }
+    .trace-panel pre { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-size: 0.8rem; max-height: 160px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav class="nav-accordion">
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>모니터링</summary>
+        <div class="nav-sub">
+          <a href="/dashboard"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-layout-dashboard"/></svg>대시보드</a>
+          <a href="/syslog"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-scroll-text"/></svg>Syslog</a>
+          <a href="/ansible-dummy"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>장비 메트릭</a>
+          <a href="/monitor" class="active"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-radio"/></svg>통신 확인</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>AI/분석</summary>
+        <div class="nav-sub">
+          <a href="/llm-query"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>로컬 AI 질문</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-settings"/></svg>관리</summary>
+        <div class="nav-sub">
+          <a href="/device-config" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-server"/></svg>장비 설정</a>
+          <a href="/data-management" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-database"/></svg>데이터 관리</a>
+          <a href="/mail"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-mail"/></svg>메일</a>
+          <a href="/accounts" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-users"/></svg>계정 관리</a>
+        </div>
+      </details>
+      <div class="nav-user">
+        <span class="user" id="userName">-</span>
+        <button type="button" class="logout" id="logoutBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-log-out"/></svg><span>로그아웃</span></button>
+      </div>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">통신 확인</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1rem;">서버 ping/traceroute 결과를 기반으로 상태를 표시합니다.</p>
+    <div class="monitor-toolbar" style="margin-bottom: 1.5rem;">
+      <button type="button" id="effectToggle" class="btn" aria-pressed="false" title="켜면 속도(ms)에 따라 색이 그라데이션으로 부드럽게 변합니다">
+        <svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>
+        <span id="effectToggleLabel">효과 켜기</span>
+      </button>
+    </div>
+
+    <div class="monitor-layout">
+      <div class="panel">
+        <h3 style="margin-top:0;"><svg class="icon" aria-hidden="true" style="vertical-align:middle; margin-right:0.35rem;"><use href="/icons/sprite.svg#icon-server"/></svg>장비 목록</h3>
+        <div class="device-list" id="deviceList"></div>
+        <div class="legend" style="margin-top: 1rem;">
+          <div class="item"><span class="status-dot status-ok"></span> 정상 (&lt;150ms)</div>
+          <div class="item"><span class="status-dot status-warn"></span> 지연 (150~300ms)</div>
+          <div class="item"><span class="status-dot status-bad"></span> 위험 (&gt;300ms)</div>
+          <div class="item"><span class="status-dot status-timeout"></span> 타임아웃</div>
+        </div>
+      </div>
+      <div>
+        <div class="panel topology-wrap">
+          <svg id="topologySvg" viewBox="0 0 1000 520"></svg>
+        </div>
+        <div class="panel trace-panel">
+          <h3 style="margin-top:0;"><svg class="icon" aria-hidden="true" style="vertical-align:middle; margin-right:0.35rem;"><use href="/icons/sprite.svg#icon-radio"/></svg>경로(Traceroute)</h3>
+          <div id="traceStatus" style="color: var(--text-muted); margin-bottom: 0.5rem;">장비를 선택하면 경로를 표시합니다.</div>
+          <pre id="traceOutput"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="js/monitor.js"></script>
+  <script src="js/nav.js"></script>
+</body>
+</html>

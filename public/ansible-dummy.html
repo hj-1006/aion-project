@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 장비 메트릭 (미리보기)</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.25rem; }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .metric-card .device { color: var(--accent); font-weight: 600; margin-bottom: 0.5rem; }
+    .ring-row { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 0.75rem; justify-items: center; margin-top: 1rem; }
+    .metric-card .value { font-size: 1.75rem; font-weight: 700; margin: 0.25rem 0; }
+    .metric-card .label { color: var(--text-muted); font-size: 0.8rem; }
+    .dummy-notice { background: var(--bg-input); border: 1px dashed var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .btn-refresh { padding: 0.5rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .btn-refresh:hover { background: var(--accent-hover); }
+    .metrics-summary { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem; }
+    .metrics-list { margin-top: 0.35rem; color: var(--text); font-size: 0.85rem; }
+    .metric-extra { margin-top: 0.75rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .metric-card-head { display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .status-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
+    .status-badge--online { background: rgba(22, 163, 74, 0.2); color: #16a34a; }
+    .status-badge--offline { background: rgba(156, 163, 175, 0.25); color: #9ca3af; }
+    .status-badge--no_data { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .collection-logs-section { border-top: 1px solid var(--border); padding-top: 1.5rem; }
+    .collection-logs-box { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; }
+    .collection-log-line { padding: 0.25rem 0; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; }
+    .collection-log-line:last-child { border-bottom: none; }
+    .collection-log-ts { color: var(--text-muted); flex-shrink: 0; }
+    .collection-log-device { font-weight: 600; color: var(--accent); min-width: 6rem; }
+    .collection-log-msg { color: var(--text); }
+    .collection-log-detail-toggle { margin-left: auto; padding: 0.2rem 0.5rem; font-size: 0.75rem; cursor: pointer; background: var(--border); border: none; border-radius: 4px; }
+    .collection-log-detail { margin-top: 0.25rem; padding: 0.5rem; background: var(--bg-card); border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav class="nav-accordion">
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>모니터링</summary>
+        <div class="nav-sub">
+          <a href="/dashboard"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-layout-dashboard"/></svg>대시보드</a>
+          <a href="/syslog"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-scroll-text"/></svg>Syslog</a>
+          <a href="/ansible-dummy" class="active"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>장비 메트릭</a>
+          <a href="/monitor"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-radio"/></svg>통신 확인</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>AI/분석</summary>
+        <div class="nav-sub">
+          <a href="/llm-query"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>로컬 AI 질문</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-settings"/></svg>관리</summary>
+        <div class="nav-sub">
+          <a href="/device-config" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-server"/></svg>장비 설정</a>
+          <a href="/data-management" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-database"/></svg>데이터 관리</a>
+          <a href="/mail"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-mail"/></svg>메일</a>
+          <a href="/accounts" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-users"/></svg>계정 관리</a>
+        </div>
+      </details>
+      <div class="nav-user">
+        <span class="user" id="userName">-</span>
+        <button type="button" class="logout" id="logoutBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-log-out"/></svg><span>로그아웃</span></button>
+      </div>
+    </nav>
+  </header>
+  <main class="container">
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <h2 class="page-title" style="margin:0;">장비 메트릭</h2>
+      <button type="button" id="btnRefresh" class="btn-refresh"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-refresh-cw"/></svg><span>새로고침</span></button>
+      <span id="dataSourceLabel" style="color:var(--text-muted); font-size:0.9rem;"></span>
+    </div>
+    <div class="metrics-summary" id="metricsSummary">
+      장비 메트릭 요약을 불러오는 중...
+      <div class="metrics-list" id="metricsList"></div>
+    </div>
+    <p class="dummy-notice" id="dummyNotice">실시간으로 장비 메트릭을 수집하는 중…</p>
+    <div class="metric-grid" id="metricGrid"></div>
+    <section class="collection-logs-section" style="margin-top:2rem;">
+      <h3 class="page-title" style="font-size:1.1rem; margin-bottom:0.75rem;">수집 로그</h3>
+      <div id="collectionLogsBox" class="collection-logs-box" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="js/ansible-dummy.js"></script>
+  <script src="js/nav.js"></script>
+</body>
+</html>

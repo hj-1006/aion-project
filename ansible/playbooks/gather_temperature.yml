@@ -1,0 +1,21 @@
+---
+# AION - Gather Temperature / Environment from Cisco IOS
+# Run manually: ansible-playbook -i ../inventory/hosts.ini gather_temperature.yml
+# Note: show environment may not be available on all IOS versions.
+- name: Gather environment and temperature from network devices
+  hosts: network
+  gather_facts: false
+  connection: network_cli
+
+  tasks:
+    - name: Show environment (temperature, fans, etc.)
+      ios_command:
+        commands:
+          - show environment
+      register: env_result
+      ignore_errors: true
+
+    - name: Display environment output
+      debug:
+        var: env_result.stdout_lines
+      when: env_result is not failed

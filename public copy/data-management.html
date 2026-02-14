@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 데이터 관리 (MySQL)</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .tab-row { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .tab-row a { padding: 0.75rem 1rem; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab-row a:hover { color: var(--text); }
+    .tab-row a.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .db-section { display: none; }
+    .db-section.active { display: block; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .toolbar select { padding: 0.5rem 0.75rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); min-width: 180px; }
+    .toolbar .limit-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .toolbar .limit-wrap input { width: 70px; padding: 0.5rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+    .toolbar button { padding: 0.5rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: #fff; cursor: pointer; }
+    .toolbar button:hover { background: var(--accent-hover); }
+    .toolbar button.secondary { background: var(--bg-input); color: var(--text); }
+    .toolbar button.secondary:hover { background: var(--border); }
+    .data-table-wrap { overflow-x: auto; margin-top: 1rem; border: 1px solid var(--border); border-radius: 8px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .data-table th, .data-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .data-table th { background: var(--bg-input); color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .data-table tr:hover { background: rgba(88, 166, 255, 0.06); }
+    .data-table .cell-json { max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+    .pagination { margin-top: 1rem; display: flex; align-items: center; gap: 1rem; color: var(--text-muted); font-size: 0.9rem; }
+    .tsdb-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+    .tsdb-box h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+    .tsdb-box p { color: var(--text-muted); margin: 0 0 1rem 0; font-size: 0.9rem; }
+    .tsdb-box a { color: var(--accent); }
+    .notice { background: var(--bg-input); border: 1px dashed var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav>
+      <a href="/dashboard">대시보드</a>
+      <a href="/syslog">Syslog</a>
+      <!-- <a href="/telemetry">Telemetry</a> -->
+      <a href="/ansible-dummy">장비 메트릭</a>
+      <a href="/llm-query">LLM 네트워크 질의</a>
+      <a href="/data-management" class="active" data-requires-admin>데이터 관리</a>
+      <a href="/mail">메일</a>
+      <a href="/accounts" data-requires-admin>계정 관리</a>
+      <span class="user" id="userName">-</span>
+      <button type="button" class="logout" id="logoutBtn">로그아웃</button>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">데이터 관리</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">MySQL 테이블 조회·내보내기</p>
+
+    <div class="tab-row">
+      <a href="#" id="tab-mysql" class="active">MySQL</a>
+      <!-- TSDB 비활성 <a href="#" id="tab-tsdb">TSDB (Prometheus)</a> -->
+    </div>
+
+    <section id="section-mysql" class="db-section active">
+      <div class="notice">MySQL 테이블을 선택하면 최근 데이터를 조회할 수 있습니다. 수정/삭제는 지원하지 않습니다.</div>
+      <div id="tableLoadStatus" class="notice" style="display:none; margin-bottom:0.5rem;"></div>
+      <div class="toolbar">
+        <label>테이블</label>
+        <select id="tableSelect">
+          <option value="">선택...</option>
+        </select>
+        <div class="limit-wrap">
+          <label>행 수</label>
+          <input type="number" id="limitInput" value="100" min="1" max="1000">
+        </div>
+        <div class="limit-wrap">
+          <label>오프셋</label>
+          <input type="number" id="offsetInput" value="0" min="0">
+        </div>
+        <button type="button" id="btnLoad">조회</button>
+        <button type="button" id="btnExportJson" class="secondary">JSON 내보내기</button>
+        <button type="button" id="btnExportCsv" class="secondary">CSV 내보내기</button>
+      </div>
+      <div class="pagination" id="pagination"></div>
+      <div class="data-table-wrap">
+        <table class="data-table" id="dataTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TSDB 비활성
+    <section id="section-tsdb" class="db-section">
+      <div class="tsdb-box">
+        <h3>Prometheus (TSDB)</h3>
+        <p>메트릭 조회 및 그래프는 Prometheus UI에서 할 수 있습니다. Docker Compose에서 <code>--profile tsdb</code>로 실행한 경우에만 사용 가능합니다.</p>
+        <a href="#" id="linkPrometheus" target="_blank" rel="noopener">Prometheus UI 열기 (동일 호스트:9090)</a>
+      </div>
+    </section>
+    -->
+  </main>
+  <script src="js/data-management.js"></script>
+</body>
+</html>

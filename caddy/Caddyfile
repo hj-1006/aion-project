@@ -1,0 +1,14 @@
+# AION 웹 - 80(HTTP), 443(HTTPS)는 web 컨테이너가 직접 처리. Caddy는 도메인/리버스 프록시가 필요할 때만 사용.
+# web 서버가 80·443 직접 리스닝하므로, Caddy 없이 web만 띄워도 됨 (docker compose up web api ...).
+# Caddy 사용 시: 아래에서 web:80, web:443 으로 프록시 가능.
+# aion.re.kr, aion.com, aion.org, www.aion.re.kr, www.aion.com, www.aion.org {
+#   tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+#   reverse_proxy web:80
+# }
+:80 {
+  reverse_proxy web:80
+}
+:443 {
+  tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+  reverse_proxy web:443
+}

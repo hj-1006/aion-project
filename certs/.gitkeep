@@ -1,0 +1,1 @@
+# cert.pem, key.pem 은 scripts/gen-https-cert.sh 로 생성 (저장소에 올리지 않음)

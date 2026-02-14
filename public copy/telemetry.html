@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - Telemetry</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav>
+      <a href="/dashboard">대시보드</a>
+      <a href="/syslog">Syslog</a>
+      <!-- <a href="/telemetry">Telemetry</a> -->
+      <a href="/ansible-dummy">장비 메트릭</a>
+      <a href="/llm-query">LLM 네트워크 질의</a>
+      <a href="/data-management" data-requires-admin>데이터 관리</a>
+      <a href="/mail">메일</a>
+      <a href="/accounts" data-requires-admin>계정 관리</a>
+      <span class="user" id="userName">-</span>
+      <button type="button" class="logout" id="logoutBtn">로그아웃</button>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">Telemetry 스냅샷</h2>
+    <div class="card">
+      <div class="form-group" style="margin-bottom:1rem;">
+        <button type="button" class="btn btn-primary" id="refreshBtn">새로고침</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>수집 시간</th><th>장비</th><th>타입</th><th>값 (JSON)</th></tr>
+          </thead>
+          <tbody id="snapshotsBody"></tbody>
+        </table>
+      </div>
+      <p id="snapshotsStatus" style="color:var(--text-muted); margin-top:0.5rem;"></p>
+    </div>
+  </main>
+  <script src="js/telemetry.js"></script>
+</body>
+</html>

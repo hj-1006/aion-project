@@ -1,0 +1,2 @@
+ALTER TABLE assets
+  ADD COLUMN interface_name VARCHAR(128) DEFAULT NULL AFTER ip;

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 장비 설정</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .device-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; }
+    @media (max-width: 980px) { .device-grid { grid-template-columns: 1fr; } }
+    .device-list { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+    .device-list h3 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+    .device-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .device-table th, .device-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .device-table th { background: var(--bg-input); color: var(--text-muted); font-weight: 600; }
+    .device-table tr:hover { background: rgba(88, 166, 255, 0.06); }
+    .device-form { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+    .device-form h3 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+    .device-form label { display: block; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.875rem; }
+    .device-form input, .device-form select { width: 100%; padding: 0.6rem 0.75rem; margin-bottom: 1rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1rem; }
+    .device-form input:focus, .device-form select:focus { outline: none; border-color: var(--accent); }
+    .device-form .btn-row { display: flex; gap: 0.75rem; }
+.device-form .btn-row button { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .device-form button { padding: 0.75rem 1.5rem; background: var(--accent); border: none; border-radius: 6px; color: #fff; font-size: 1rem; cursor: pointer; }
+    .device-form button.secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+    .device-form button:hover { background: var(--accent-hover); }
+    .device-form button.secondary:hover { background: var(--border); }
+    .device-no-permission { padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.5rem; color: var(--text-muted); }
+    .btn-mini { padding: 0.35rem 0.6rem; font-size: 0.8rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--accent); cursor: pointer; }
+    .btn-mini.danger { color: var(--danger); border-color: rgba(220,38,38,0.35); }
+    .btn-mini:hover { background: var(--border); color: var(--accent-hover); }
+    .btn-mini.danger:hover { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav class="nav-accordion">
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>모니터링</summary>
+        <div class="nav-sub">
+          <a href="/dashboard"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-layout-dashboard"/></svg>대시보드</a>
+          <a href="/syslog"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-scroll-text"/></svg>Syslog</a>
+          <a href="/ansible-dummy"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>장비 메트릭</a>
+          <a href="/monitor"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-radio"/></svg>통신 확인</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>AI/분석</summary>
+        <div class="nav-sub">
+          <a href="/llm-query"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>로컬 AI 질문</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-settings"/></svg>관리</summary>
+        <div class="nav-sub">
+          <a href="/device-config" class="active" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-server"/></svg>장비 설정</a>
+          <a href="/data-management" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-database"/></svg>데이터 관리</a>
+          <a href="/mail"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-mail"/></svg>메일</a>
+          <a href="/accounts" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-users"/></svg>계정 관리</a>
+        </div>
+      </details>
+      <div class="nav-user">
+        <span class="user" id="userName">-</span>
+        <button type="button" class="logout" id="logoutBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-log-out"/></svg><span>로그아웃</span></button>
+      </div>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">장비 설정</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">장비 IP/타입/그룹을 등록하면 통신 확인 페이지에 반영됩니다.</p>
+
+    <div id="deviceNoPermission" class="device-no-permission" style="display:none;">
+      관리자 권한이 필요합니다. 현재 로그인한 계정은 장비 설정을 사용할 수 없습니다.
+    </div>
+
+    <div id="deviceGrid" class="device-grid">
+      <div class="device-list">
+        <h3>장비 목록</h3>
+        <table class="device-table">
+          <thead>
+            <tr><th>장비명</th><th>IP</th><th>타입</th><th>그룹</th><th>위치</th><th></th></tr>
+          </thead>
+          <tbody id="deviceTableBody">
+            <tr><td colspan="6">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="device-form">
+        <h3 id="formTitle">장비 추가</h3>
+        <form id="deviceForm">
+          <input type="hidden" id="deviceId">
+          <label for="deviceName">장비명 (필수)</label>
+          <input type="text" id="deviceName" placeholder="Router1" required>
+          <label for="deviceIp">IP 주소 (필수)</label>
+          <input type="text" id="deviceIp" placeholder="192.168.0.10" required>
+          <label for="deviceType">타입</label>
+          <select id="deviceType">
+            <option value="router">라우터</option>
+            <option value="switch">스위치</option>
+            <option value="server">서버</option>
+            <option value="other">기타</option>
+          </select>
+          <label for="deviceGroup">그룹</label>
+          <select id="deviceGroup">
+            <option value="hq">hq (본부)</option>
+            <option value="research">research (연구)</option>
+            <option value="datacenter">datacenter (데이터센터)</option>
+            <option value="control">control (관제)</option>
+            <option value="other">other (기타)</option>
+          </select>
+          <label for="deviceLocation">위치</label>
+          <input type="text" id="deviceLocation" placeholder="연구소 2층">
+          <div class="btn-row">
+            <button type="submit" id="saveBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-save"/></svg><span>저장</span></button>
+            <button type="button" class="secondary" id="cancelEditBtn" style="display:none;">취소</button>
+          </div>
+        </form>
+        <div id="deviceFormMsg" style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.9rem;"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/device-config.js"></script>
+  <script src="js/nav.js"></script>
+</body>
+</html>

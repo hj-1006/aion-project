@@ -1,0 +1,13 @@
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+
+[alt_names]
+DNS.1 = aion.com
+DNS.2 = www.aion.com
+DNS.3 = syslog.aion.com
+DNS.4 = localhost
+IP.1 = 172.16.200.200
+IP.2 = 127.0.0.1

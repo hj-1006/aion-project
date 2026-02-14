@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 로컬 AI 질문 (일반 Q&A / 네트워크 장비)</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .tab-row { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .tab-row button { padding: 0.75rem 1.25rem; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
+    .tab-row button:hover { color: var(--text); }
+    .tab-row button.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .llm-panel { display: none; }
+    .llm-panel.active { display: block; }
+    /* .llm-box { max-width: 800px; } */
+    .llm-input { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+    .llm-input input { flex: 1; padding: 0.75rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1rem; }
+    .llm-input button { padding: 0.75rem 1.25rem; background: var(--accent); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 1rem; }
+    .llm-input button:hover { background: var(--accent-hover); }
+    .llm-input button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .llm-result { margin-top: 1rem; }
+    .llm-meta { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .llm-output { background: var(--bg-dark); color: var(--text-on-dark); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
+    .llm-summary { margin-top: 1rem; padding: 1rem; background: var(--bg-card); border-left: 4px solid var(--accent); border-radius: 4px; }
+    .llm-error { color: var(--danger); }
+    .llm-hint { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem; }
+    .llm-check { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; cursor: pointer; white-space: nowrap; }
+    .llm-check input { margin: 0; }
+    .llm-logs-wrap { margin-top: 0.75rem; }
+    .llm-logs-toggle { background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); padding: 0.35rem 0.75rem; font-size: 0.8rem; cursor: pointer; }
+    .llm-logs-toggle:hover { color: var(--text); }
+    .llm-logs { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 4px; padding: 0.75rem; margin-top: 0.25rem; font-size: 0.75rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto; color: var(--text-on-dark-muted); }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav class="nav-accordion">
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>모니터링</summary>
+        <div class="nav-sub">
+          <a href="/dashboard"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-layout-dashboard"/></svg>대시보드</a>
+          <a href="/syslog"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-scroll-text"/></svg>Syslog</a>
+          <a href="/ansible-dummy"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>장비 메트릭</a>
+          <a href="/monitor"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-radio"/></svg>통신 확인</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>AI/분석</summary>
+        <div class="nav-sub">
+          <a href="/llm-query" class="active"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>로컬 AI 질문</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-settings"/></svg>관리</summary>
+        <div class="nav-sub">
+          <a href="/device-config" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-server"/></svg>장비 설정</a>
+          <a href="/data-management" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-database"/></svg>데이터 관리</a>
+          <a href="/mail"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-mail"/></svg>메일</a>
+          <a href="/accounts" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-users"/></svg>계정 관리</a>
+        </div>
+      </details>
+      <div class="nav-user">
+        <span class="user" id="userName">-</span>
+        <button type="button" class="logout" id="logoutBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-log-out"/></svg><span>로그아웃</span></button>
+      </div>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">로컬 AI 질문</h2>
+    <p style="color: var(--text-muted);">내부망 AI(Ollama)로 일반 질의응답 또는 AI 네트워크 장비 원격제어(조회·명령)를 할 수 있습니다.</p>
+
+    <div class="tab-row">
+      <button type="button" id="tabChat" class="active">일반 질의응답</button>
+      <button type="button" id="tabNetwork">AI 네트워크 장비 원격제어</button>
+    </div>
+
+    <!-- 1) 일반 질의응답 (가벼운 Q&A) -->
+    <section id="panelChat" class="llm-panel active card llm-box">
+      <p class="llm-hint">자유롭게 질문하세요. AI(Ollama)가 답변합니다. (Ansible/장비 연동 없음)</p>
+      <div class="llm-input">
+        <input type="text" id="chatInput" placeholder="예: 안녕하세요? / 네트워크란 무엇인가요?" autocomplete="off">
+        <button type="button" id="chatBtn">전송</button>
+        <label class="llm-check"><input type="checkbox" id="chatWithLogs"> Python 로그 보기</label>
+      </div>
+      <div id="chatResult" class="llm-result" style="display: none;">
+        <div class="llm-output" id="chatOutput"></div>
+        <div id="chatLogsWrap" class="llm-logs-wrap" style="display: none;">
+          <button type="button" id="chatLogsToggle" class="llm-logs-toggle">▼ 서버 로그</button>
+          <pre id="chatLogs" class="llm-logs"></pre>
+        </div>
+        <p id="chatError" class="llm-error" style="display: none;"></p>
+      </div>
+    </section>
+
+    <!-- 2) AI 네트워크 장비 원격제어 -->
+    <section id="panelNetwork" class="llm-panel card llm-box">
+      <p class="llm-hint">장비명 + 요청을 자연어로 입력하면 AI가 해석해 Ansible로 장비에 명령 후 결과를 보여줍니다.</p>
+      <div class="llm-input">
+        <input type="text" id="questionInput" placeholder="예: Router2 포트 정보 보여줘 / Router3 CPU 사용율 알려줘 / Switch4 온도 알려줘" autocomplete="off">
+        <button type="button" id="submitBtn">조회</button>
+      </div>
+      <div id="resultArea" class="llm-result" style="display: none;">
+        <div class="llm-meta" id="resultMeta"></div>
+        <div class="llm-output" id="resultOutput"></div>
+        <div class="llm-summary" id="resultSummary" style="display: none;"></div>
+        <p id="resultError" class="llm-error" style="display: none;"></p>
+      </div>
+    </section>
+
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 1.5rem;">Ollama(내부망) 실행 필요. AI 네트워크 장비 원격제어는 Ansible 인벤토리 <code>ansible/inventory/hosts.ini</code> 설정 후 사용.</p>
+  </main>
+  <script src="js/llm-query.js"></script>
+  <script src="js/nav.js"></script>
+</body>
+</html>

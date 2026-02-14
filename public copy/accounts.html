@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 계정 관리</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .accounts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .accounts-grid { grid-template-columns: 1fr; } }
+    .accounts-list { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+    .accounts-list h3 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+    .accounts-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .accounts-table th, .accounts-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .accounts-table th { background: var(--bg-input); color: var(--text-muted); font-weight: 600; }
+    .accounts-table tr:hover { background: rgba(88, 166, 255, 0.06); }
+    .add-form { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+    .add-form h3 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+    .add-form label { display: block; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.875rem; }
+    .add-form input { width: 100%; padding: 0.6rem 0.75rem; margin-bottom: 1rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1rem; }
+    .add-form input:focus { outline: none; border-color: var(--accent); }
+    .add-form button { padding: 0.75rem 1.5rem; background: var(--accent); border: none; border-radius: 6px; color: #fff; font-size: 1rem; cursor: pointer; }
+    .add-form button:hover { background: var(--accent-hover); }
+    .add-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .add-form .checkbox-label { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; cursor: pointer; color: var(--text-muted); font-size: 0.875rem; }
+    .add-form .checkbox-label input { width: auto; margin: 0; }
+    .add-form select { width: 100%; padding: 0.6rem 0.75rem; margin-bottom: 1rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1rem; cursor: pointer; }
+    .add-form select:focus { outline: none; border-color: var(--accent); }
+    .accounts-no-permission { padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.5rem; color: var(--text-muted); }
+    .accounts-no-permission .btn-link { color: var(--accent); }
+    .form-msg { margin-top: 0.75rem; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; display: none; }
+    .form-msg.success { display: block; background: rgba(63, 185, 80, 0.15); color: var(--success); }
+    .form-msg.error { display: block; background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+    .btn-edit { padding: 0.35rem 0.6rem; font-size: 0.8rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--accent); cursor: pointer; }
+    .btn-edit:hover { background: var(--border); color: var(--accent-hover); }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 400px; }
+    .modal-box h3 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+    .modal-box label { display: block; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.875rem; }
+    .modal-box input, .modal-box select { width: 100%; padding: 0.6rem 0.75rem; margin-bottom: 1rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1rem; }
+    .modal-box .checkbox-label { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; cursor: pointer; font-size: 0.875rem; color: var(--text-muted); }
+    .modal-box .checkbox-label input { width: auto; margin: 0; }
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+    .modal-actions button { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; border: none; }
+    .modal-actions .btn-cancel { background: var(--bg-input); color: var(--text); }
+    .modal-actions .btn-save { background: var(--accent); color: #fff; }
+    .modal-actions .btn-save:hover { background: var(--accent-hover); }
+    .modal-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav>
+      <a href="/dashboard">대시보드</a>
+      <a href="/syslog">Syslog</a>
+      <!-- <a href="/telemetry">Telemetry</a> -->
+      <a href="/ansible-dummy">장비 메트릭</a>
+      <a href="/llm-query">AI 질의</a>
+      <a href="/data-management" data-requires-admin>데이터 관리</a>
+      <a href="/mail">메일</a>
+      <a href="/accounts" class="active" data-requires-admin>계정 관리</a>
+      <span class="user" id="userName">-</span>
+      <button type="button" class="logout" id="logoutBtn">로그아웃</button>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">계정 관리</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">사용자 계정 목록 조회 및 새 계정 추가. <strong>관리자(admin)</strong>만 이용할 수 있습니다.</p>
+
+    <div id="accountsNoPermission" class="accounts-no-permission" style="display: none;">
+      관리자 권한이 필요합니다. 현재 로그인한 계정은 계정 관리 메뉴를 사용할 수 없습니다.
+      <a href="/dashboard" class="btn-link">대시보드로 이동</a>
+    </div>
+    <div id="accountsGrid" class="accounts-grid">
+      <div class="accounts-list">
+        <h3>계정 목록</h3>
+        <table class="accounts-table">
+          <thead>
+            <tr><th>ID</th><th>아이디</th><th>표시 이름</th><th>권한</th><th>이메일</th><th>메일 사용</th><th></th></tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="7">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="add-form">
+        <h3>계정 추가</h3>
+        <form id="addAccountForm">
+          <label for="username">아이디 (필수)</label>
+          <input type="text" id="username" name="username" placeholder="로그인 아이디" required autocomplete="off">
+          <label for="password">비밀번호 (필수)</label>
+          <input type="password" id="password" name="password" placeholder="비밀번호" required autocomplete="new-password">
+          <label for="display_name">사용자 정보 (표시 이름)</label>
+          <input type="text" id="display_name" name="display_name" placeholder="이름 또는 부서 등">
+          <label for="role">권한 레벨</label>
+          <select id="role" name="role">
+            <option value="viewer">viewer (읽기 전용)</option>
+            <option value="user" selected>user (일반)</option>
+            <option value="operator">operator (운영)</option>
+            <option value="admin">admin (관리자)</option>
+          </select>
+          <label for="email">이메일 주소 (메일 사용 시 발신 표시용)</label>
+          <input type="email" id="email" name="email" placeholder="user@example.com">
+          <label class="checkbox-label">
+            <input type="checkbox" id="can_use_mail" name="can_use_mail" value="1">
+            메일 사용 권한 (보내기/받기 가능)
+          </label>
+          <button type="submit" id="addBtn">추가</button>
+        </form>
+        <div id="formMsg" class="form-msg"></div>
+      </div>
+    </div>
+
+    <div id="editModal" class="modal-overlay">
+      <div class="modal-box">
+        <h3>계정 수정 <span id="editUsername" style="color: var(--text-muted); font-weight: normal;"></span></h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 1rem 0;">비밀번호는 수정할 수 없습니다.</p>
+        <form id="editAccountForm">
+          <input type="hidden" id="editId" name="id">
+          <label for="edit_display_name">표시 이름</label>
+          <input type="text" id="edit_display_name" name="display_name" placeholder="이름 또는 부서 등">
+          <label for="edit_role">권한 레벨</label>
+          <select id="edit_role" name="role">
+            <option value="viewer">viewer (읽기 전용)</option>
+            <option value="user">user (일반)</option>
+            <option value="operator">operator (운영)</option>
+            <option value="admin">admin (관리자)</option>
+          </select>
+          <label for="edit_email">이메일 주소</label>
+          <input type="email" id="edit_email" name="email" placeholder="user@example.com">
+          <label class="checkbox-label">
+            <input type="checkbox" id="edit_can_use_mail" name="can_use_mail" value="1">
+            메일 사용 권한
+          </label>
+          <div class="modal-actions">
+            <button type="button" id="editCancelBtn" class="btn-cancel">취소</button>
+            <button type="submit" id="editSaveBtn" class="btn-save">저장</button>
+          </div>
+        </form>
+        <div id="editFormMsg" class="form-msg" style="margin-top: 0.5rem;"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/accounts.js"></script>
+</body>
+</html>

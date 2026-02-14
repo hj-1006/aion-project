@@ -1,0 +1,117 @@
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes  -subj "/C=KR/ST=Seoul/L=Seoul/OU=IT/CN=aion.com" -addext "subjectAltName=DNS:aion.com,DNS:www.aion.com,DNS:syslog.aion.com"
+
+
+
+[root@localhost first_management_Server]# openssl genrsa -out MyRootCA.key 4096
+[root@localhost first_management_Server]# openssl req -x509 -new -nodes -key MyRootCA.key -sha256 -days 3650 -out MyRootCA.pem -subj "/C=KR/ST=Seoul/O=AION_Internal_Root_CA/CN=AION Root CA"
+
+openssl genrsa -out aion.key 2048
+
+
+# 2-2. 설정 파일 작성 (SAN 설정 포함 - Chrome/Firefox 필수 사항)
+cat > aion.ext << EOF
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = aion.com
+DNS.2 = www.aion.com
+DNS.3 = syslog.aion.com
+DNS.4 = localhost
+IP.1 = 172.16.200.200
+IP.2 = 127.0.0.1
+EOF
+
+# 2-3. 인증서 발급 신청서(CSR) 생성
+openssl req -new -key aion.key -out aion.csr \
+  -subj "/C=KR/ST=Seoul/O=AION/OU=IT/CN=aion.com"
+
+3. Root CA로 서버 인증서 서명 (발급 완료)
+
+이제 내가 만든 가짜 기관(MyRootCA)이 서버 인증서에 도장을 찍어줍니다.
+Bash
+
+openssl x509 -req -in aion.csr -CA MyRootCA.pem -CAkey MyRootCA.key \
+-CAcreateserial -out aion.crt -days 825 -sha256 -extfile aion.ext
+
+💻 4. 인증서 파일 위치
+
+서버가 읽을 수 있도록 프로젝트 루트의 ssl/ 폴더에 넣으세요.
+  ssl/
+    aion.key
+    aion.crt
+(MyRootCA.key, MyRootCA.pem, aion.csr, aion.ext 등은 서버에서 읽지 않음. 보관만 하면 됨.)
+
+Node.js는 이미 ssl/aion.key, ssl/aion.crt 를 사용하도록 설정되어 있음.
+
+
+🔒 5. 모든 로컬 PC에서 경고 없이 쓰기 (정식 배포)
+
+목표: 회사/사내 모든 PC에서 https://aion.com 접속 시 경고가 안 뜨게 하기.
+방법: 루트 CA(MyRootCA.pem)를 각 PC의 "신뢰할 수 있는 루트 인증 기관"에 넣되,
+      수동이 아니라 그룹 정책(GPO) 또는 스크립트로 한 번에 배포하는 것이 정석입니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🪟 Windows + Active Directory (도메인) 있는 경우 — 권장
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 그룹 정책 관리 콘솔(gpmc.msc) 열기
+2. 배포할 OU(또는 도메인) 선택 → 우클릭 → "이 컨테이너에 연결된 GPO 만들기" → 이름 예: "AION Root CA 배포"
+3. 해당 GPO 편집 → 컴퓨터 구성 → 정책 → Windows 설정 → 보안 설정 → 공개 키 정책
+4. "신뢰할 수 있는 루트 인증 기관" 우클릭 → 가져오기 → MyRootCA.pem 선택 → 완료
+5. 도메인 PC는 gpupdate /force 또는 재부팅 후 정책 적용 → 해당 PC에서는 Chrome/Edge 등 경고 없음
+
+※ Firefox는 자체 인증서 저장소를 쓰므로, Firefox까지 통일하려면 Firefox 정책(autoconfig 또는 ADM)으로 CA 배포를 추가하거나, 각 PC에서 한 번만 Firefox 인증서 가져오기를 안내해야 합니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🪟 Windows, 도메인 없음 — PC마다 스크립트 한 번 실행
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• 프로젝트에 포함된 PowerShell 스크립트 사용 (관리자 권한 필요):
+
+  1) MyRootCA.pem 을 각 PC에서 접근 가능한 곳에 복사 (예: 공유폴더 \\server\share\MyRootCA.pem)
+  2) 각 PC에서 PowerShell을 "관리자 권한으로 실행"
+  3) 실행:
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+     \\server\share\first_management_Server\scripts\install-aion-root-ca.ps1 -PemPath "\\server\share\MyRootCA.pem"
+
+  또는 스크립트와 MyRootCA.pem을 같은 폴더에 두고:
+     cd C:\path\to\first_management_Server
+     .\scripts\install-aion-root-ca.ps1
+
+  한 번 실행하면 해당 PC의 "신뢰할 수 있는 루트 인증 기관"에 등록되며, Chrome/Edge는 경고 없이 접속됩니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🍎 macOS (여러 대) — 프로파일 또는 키체인 배포
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• MDM(Jamf, Kandji 등) 사용 시: 루트 CA 인증서를 "신뢰" 프로파일로 배포.
+• 없으면: 각 Mac에서 키체인 접근 → 파일 > 항목 가져오기 → MyRootCA.pem → 해당 인증서 "항상 신뢰" 설정.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐧 Linux (여러 대)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• 공용 이미지/Ansible 등으로 배포:
+  sudo cp MyRootCA.pem /usr/local/share/ca-certificates/AION-Root-CA.crt
+  sudo update-ca-certificates
+• Firefox는 자체 저장소이므로 설정 → 인증서 → 기관 → 가져오기로 MyRootCA.pem 추가.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 참고: 공인 인증서(Let's Encrypt)를 쓰면 배포 불필요
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+aion.com 도메인을 실제로 소유하고, 서버가 인터넷에서 접근 가능하다면
+Let's Encrypt로 무료 인증서를 발급받아 사용하면, 어떤 PC에서든 CA 배포 없이 경고 없이 접속할 수 있습니다.
+(내부 전용이면 위의 사내 CA 배포가 맞고, 외부 공개 또는 DMZ 서버면 Let's Encrypt 검토.)
+
+
+🔒 6. 개인 PC 한 대만 — 수동 설치 (참고)
+
+한 두 대만 쓰는 경우 아래처럼 수동으로 CA를 넣을 수 있습니다.
+
+• Firefox: about:preferences#privacy → 인증서 보기 → 기관 → 가져오기 → MyRootCA.pem → 웹 사이트 식별 신뢰 체크
+• Windows(Chrome/Edge): MyRootCA.pem 더블클릭 → 인증서 설치 → 로컬 컴퓨터 → 신뢰할 수 있는 루트 인증 기관
+• macOS: 키체인 접근 → 항목 가져오기 → MyRootCA.pem → 해당 인증서 "항상 신뢰"

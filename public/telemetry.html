@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - Telemetry</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav class="nav-accordion">
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>모니터링</summary>
+        <div class="nav-sub">
+          <a href="/dashboard"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-layout-dashboard"/></svg>대시보드</a>
+          <a href="/syslog"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-scroll-text"/></svg>Syslog</a>
+          <a href="/ansible-dummy"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-activity"/></svg>장비 메트릭</a>
+          <a href="/monitor"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-radio"/></svg>통신 확인</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>AI/분석</summary>
+        <div class="nav-sub">
+          <a href="/llm-query"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-bot"/></svg>로컬 AI 질문</a>
+        </div>
+      </details>
+      <details class="nav-group">
+        <summary><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-settings"/></svg>관리</summary>
+        <div class="nav-sub">
+          <a href="/device-config" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-server"/></svg>장비 설정</a>
+          <a href="/data-management" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-database"/></svg>데이터 관리</a>
+          <a href="/mail"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-mail"/></svg>메일</a>
+          <a href="/accounts" data-requires-admin><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-users"/></svg>계정 관리</a>
+        </div>
+      </details>
+      <div class="nav-user">
+        <span class="user" id="userName">-</span>
+        <button type="button" class="logout" id="logoutBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-log-out"/></svg><span>로그아웃</span></button>
+      </div>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 class="page-title">Telemetry 스냅샷</h2>
+    <div class="card">
+      <div class="form-group" style="margin-bottom:1rem;">
+        <button type="button" class="btn btn-primary" id="refreshBtn"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#icon-refresh-cw"/></svg><span>새로고침</span></button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>수집 시간</th><th>장비</th><th>타입</th><th>값 (JSON)</th></tr>
+          </thead>
+          <tbody id="snapshotsBody"></tbody>
+        </table>
+      </div>
+      <p id="snapshotsStatus" style="color:var(--text-muted); margin-top:0.5rem;"></p>
+    </div>
+  </main>
+  <script src="js/telemetry.js"></script>
+  <script src="js/nav.js"></script>
+</body>
+</html>

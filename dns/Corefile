@@ -1,0 +1,9 @@
+# AION 내부 DNS - aion.re.kr, aion.com, aion.org → 서버 IP
+# /etc/coredns/hosts 파일에서 IP·도메인 매핑 (5초마다 자동 리로드)
+.:53 {
+  hosts /etc/coredns/hosts {
+    fallthrough
+  }
+  forward . 8.8.8.8 8.8.4.4
+  log
+}

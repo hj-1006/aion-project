@@ -1,0 +1,158 @@
+# AION - 마이크로서비스 (Web / API / Query-Server / MySQL / Caddy / DNS)
+# 실행: docker compose up -d
+# 웹: http://localhost 또는 https://aion.com (DNS 설정 후, 아래 docs/DNS-SETUP.md 참고)
+services:
+  dns:
+    image: coredns/coredns:1.11.1
+    container_name: aion-dns
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./dns/Corefile:/etc/coredns/Corefile:ro
+      - ./dns/hosts:/etc/coredns/hosts:ro
+    command: ["-conf", "/etc/coredns/Corefile"]
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secret
+      MYSQL_DATABASE: aion
+      MYSQL_USER: aion
+      MYSQL_PASSWORD: aion_secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "3307:3306"   # 호스트 3306 충돌 방지: 로컬 접속 시 3307 사용
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secret"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  query-server:
+    build: .
+    container_name: aion-query-server
+    command: ["node", "servers/query-server/server.js"]
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: aion
+      MYSQL_PASSWORD: aion_secret
+      MYSQL_DATABASE: aion
+      LOG_DIR: /app/logs
+      SERVICE_NAME: query-server
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # 메일 서버 (SMTP) - 발송한 메일을 수신해 웹 UI(8025)에서 확인. 실제 전달은 안 함(테스트용).
+  mail:
+    image: axllent/mailpit:latest
+    container_name: aion-mail
+    ports:
+      - "1025:1025"   # SMTP (nodemailer가 여기로 발송)
+      - "8025:8025"   # 웹 UI (받은 메일 보기)
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: aion-api
+    command: ["node", "servers/api/server.js"]
+    ports:
+      - "5514:5514/udp"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      QUERY_SERVER_URL: http://query-server:3002
+      SESSION_SECRET: aion-docker-secret
+      SYSLOG_PORT: 5514
+      # PROMETHEUS_METRICS_ENABLED: "true"   # TSDB 비활성
+      LOG_DIR: /app/logs
+      SERVICE_NAME: api
+      # 메일: Docker 안에서는 mail 서비스로 발송 → Mailpit에서 수신 확인
+      SMTP_HOST: mail
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      # LLM: Ollama는 호스트 또는 다른 PC에서 실행. 도커 내부에서는 localhost 대신 아래 사용.
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3}
+    volumes:
+      - ./logs:/app/logs
+      - ./ansible:/app/ansible:ro
+    depends_on:
+      query-server:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  web:
+    build: .
+    container_name: aion-web
+    command: ["node", "servers/web/server.js"]
+    expose:
+      - "80"
+      - "443"
+    environment:
+      NODE_ENV: production
+      WEB_PORT: 80
+      WEB_PORT_HTTPS: 443
+      API_SERVER_URL: http://api:3001
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    image: aion-caddy:latest
+    container_name: aion-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./certs:/etc/caddy/certs
+    depends_on:
+      - web
+    restart: unless-stopped
+
+  # TSDB 비활성
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #   ports:
+  #     - "9090:9090"
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--web.enable-lifecycle'
+  #   profiles:
+  #     - tsdb
+
+volumes:
+  mysql_data:

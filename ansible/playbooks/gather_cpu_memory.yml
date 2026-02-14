@@ -1,0 +1,32 @@
+---
+# AION - Gather CPU and Memory from Cisco IOS
+# Run manually: ansible-playbook -i ../inventory/hosts.ini gather_cpu_memory.yml
+- name: Gather CPU and Memory usage from network devices
+  hosts: network
+  gather_facts: false
+  connection: network_cli
+
+  tasks:
+    - name: Show processes cpu
+      ios_command:
+        commands:
+          - show processes cpu
+      register: cpu_result
+      ignore_errors: true
+
+    - name: Show memory
+      ios_command:
+        commands:
+          - show memory
+      register: mem_result
+      ignore_errors: true
+
+    - name: Display CPU output
+      debug:
+        var: cpu_result.stdout_lines
+      when: cpu_result is not failed
+
+    - name: Display Memory output
+      debug:
+        var: mem_result.stdout_lines
+      when: mem_result is not failed

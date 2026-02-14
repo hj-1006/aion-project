@@ -1,0 +1,9 @@
+# AION - Prometheus scrape config (optional, use with: docker-compose --profile tsdb up)
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'aion-app'
+    static_configs:
+      - targets: ['app:3000']
+    metrics_path: /metrics

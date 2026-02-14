@@ -1,0 +1,2 @@
+# AION LLM 스크립트용 (ai_query.py, llm_interpret.py, llm_summarize.py)
+ollama>=0.3.0

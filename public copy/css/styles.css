@@ -1,0 +1,144 @@
+/* AION - Aerospace / Mission Control theme */
+:root {
+  --bg-dark: #0d1117;
+  --bg-card: #161b22;
+  --bg-input: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-hover: #79b8ff;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Login */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+  background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=80');
+  background-size: cover;
+  background-position: center;
+}
+.login-box {
+  background: rgba(22, 27, 34, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.login-box h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  color: var(--text);
+}
+.login-box .sub {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+.login-box label { display: block; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.875rem; }
+.login-box input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 1rem;
+}
+.login-box input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.login-box button {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.login-box button:hover { background: var(--accent-hover); }
+.login-box .error { color: var(--danger); font-size: 0.875rem; margin-top: 0.5rem; }
+
+/* Layout */
+.app-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.app-header h1 { margin: 0; font-size: 1.25rem; }
+.app-header nav { display: flex; gap: 1rem; align-items: center; }
+.app-header nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.app-header nav a:hover { color: var(--accent); }
+.app-header .user { color: var(--text-muted); font-size: 0.875rem; }
+.app-header .logout { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 0.875rem; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+.page-title { margin-bottom: 1.5rem; font-size: 1.5rem; }
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.card h2, .card h3 { margin: 0 0 0.75rem 0; font-size: 1rem; color: var(--text-muted); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
+.severity-critical { color: var(--danger); }
+.severity-warning { color: var(--warning); }
+.severity-info { color: var(--accent); }
+
+/* Buttons */
+.btn { padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text); cursor: pointer; font-size: 0.875rem; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+
+/* Dashboard grid */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.dash-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+.dash-card .label { color: var(--text-muted); font-size: 0.8rem; }
+.dash-card .value { font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem; }
+
+/* Forms */
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.875rem; }
+.form-group select, .form-group input { padding: 0.5rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }

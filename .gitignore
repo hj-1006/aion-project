@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+.DS_Store
+tmp/
+# HTTPS 인증서(비공개 키는 저장소에 올리지 않음)
+certs/*.pem
+certs/*.key

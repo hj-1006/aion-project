@@ -1,0 +1,10 @@
+{
+  "BB_R1": "R2",
+  "BB_R2": "R4",
+  "ISP_R1": "R1",
+  "ISP_R2": "R3",
+  "BB_L3SW1": "L3SW1",
+  "BB_L3SW2": "L3SW2",
+  "LAB_L3SW1": "L3SW3",
+  "LAB_L3SW2": "L3SW4"
+}

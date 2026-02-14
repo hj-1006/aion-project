@@ -1,0 +1,6 @@
+mysqldump -u aion -p aion > backup_aion_$(date +%Y%m%d_%H%M%S).sql
+
+
+
+ssh 접속 안된 이유
+ssh -vvv username@*.*.*.*

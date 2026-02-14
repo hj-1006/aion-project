@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AION - 장비 메트릭 (미리보기)</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .metric-card .device { color: var(--accent); font-weight: 600; }
+    .metric-card-head { display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .status-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
+    .status-badge--online { background: rgba(22, 163, 74, 0.2); color: #16a34a; }
+    .status-badge--offline { background: rgba(156, 163, 175, 0.25); color: #9ca3af; }
+    .status-badge--no_data { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .metric-card .gauge-wrap { position: relative; height: 100px; margin: 1rem 0; }
+    .metric-card .gauge-bar {
+      height: 12px;
+      background: var(--bg-input);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .metric-card .gauge-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.3s ease;
+    }
+    .metric-card .gauge-fill.cpu { background: linear-gradient(90deg, #3fb950, #d29922); }
+    .metric-card .gauge-fill.mem { background: linear-gradient(90deg, #58a6ff, #a371f7); }
+    .metric-card .gauge-fill.temp { background: linear-gradient(90deg, #58a6ff, #f85149); }
+    .metric-card .value { font-size: 1.75rem; font-weight: 700; margin: 0.25rem 0; }
+    .metric-card .label { color: var(--text-muted); font-size: 0.8rem; }
+    .dummy-notice { background: var(--bg-input); border: 1px dashed var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .btn-refresh { padding: 0.5rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 0.9rem; }
+    .btn-refresh:hover { background: var(--accent-hover); }
+    .metric-extra { margin-top: 0.75rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>AION Mission Control (6조)</h1>
+    <nav>
+      <a href="/dashboard">대시보드</a>
+      <a href="/syslog">Syslog</a>
+      <!-- <a href="/telemetry">Telemetry</a> -->
+      <a href="/ansible-dummy">장비 메트릭</a>
+      <a href="/llm-query">LLM 네트워크 질의</a>
+      <a href="/data-management" data-requires-admin>데이터 관리</a>
+      <a href="/mail">메일</a>
+      <a href="/accounts" data-requires-admin>계정 관리</a>
+      <span class="user" id="userName">-</span>
+      <button type="button" class="logout" id="logoutBtn">로그아웃</button>
+    </nav>
+  </header>
+  <main class="container">
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <h2 class="page-title" style="margin:0;">장비 메트릭</h2>
+      <button type="button" id="btnRefresh" class="btn-refresh">새로고침</button>
+      <span id="dataSourceLabel" style="color:var(--text-muted); font-size:0.9rem;"></span>
+    </div>
+    <p class="dummy-notice" id="dummyNotice">실시간으로 장비 메트릭을 수집하는 중…</p>
+    <div class="metric-grid" id="metricGrid"></div>
+  </main>
+  <script src="js/ansible-dummy.js"></script>
+</body>
+</html>

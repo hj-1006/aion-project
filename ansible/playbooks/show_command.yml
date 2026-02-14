@@ -1,0 +1,24 @@
+---
+# AION - Execute show command on Cisco IOS (ports, IP, VLAN, etc.)
+# Called from Node with: hostname, command
+- name: Execute show command on network device
+  hosts: "{{ hostname }}"
+  gather_facts: false
+  connection: network_cli
+
+  tasks:
+    - name: Run show command
+      ios_command:
+        commands:
+          - "{{ command }}"
+      register: cmd_result
+
+    - name: Set command output
+      set_fact:
+        command_output: "{{ cmd_result.stdout[0] | default('') }}"
+        command_output_lines: "{{ cmd_result.stdout_lines[0] | default([]) }}"
+
+    - name: Display command output
+      debug:
+        msg: "{{ command_output }}"
+      when: command_output | length > 0
